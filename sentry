@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+var sentry = require("sentry");
+var sys = require('util');
+var exec = require('child_process').exec;
+
+console.log("Sentry is watching for changes in the project.");
+
+//Check for changes on the source files and test them if there is any.
+sentry.watch("src/*.js", function(filename){
+	console.log("Source file " + filename + " modified, running unit test...");
+	var test_filename = filename.replace(".js", ".spec.js").replace("src/", "spec/unit/");
+	exec("jasmine-node " + test_filename, function (error, stdout, stderr) {
+		sys.print(stdout);
+		if (error === null) {
+			//Run all tests.
+			exec("jasmine-node spec/", function (error, stdout, stderr) {
+				sys.print(stdout);
+			});
+		}
+	});
+});
+
+//Check for changes on the test files and test them if there is any.
+sentry.watch("spec/unit/*.spec.js", function(filename){
+	console.log("Test file " + filename + " modified, running test...");
+	exec("jasmine-node " + filename, function (error, stdout, stderr) {
+		sys.print(stdout);
+		if (error === null) {
+			//Run all tests.
+			exec("jasmine-node spec/", function (error, stdout, stderr) {
+				sys.print(stdout);
+			});
+		}
+	});
+});
