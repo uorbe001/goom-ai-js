@@ -18,6 +18,7 @@ desc("Runs all the tests.");
 task("test", function(params){
 	exec("jasmine-node spec/", function (error, stdout, stderr) {
 		sys.print(stdout);
+		sys.print(stderr);
 	});
 });
 
