@@ -348,5 +348,201 @@ requirejs(["../../src/behaviour-tree", "../../src/behaviour-tree-nodes", "../../
 			expect(this.bt.nodeSequence[11].execute.callCount).toBe(1);
 			expect(this.bt.nodeSequence[12].execute.callCount).toBe(1);
 		});
+
+		it("priority node should call the states until one of them returns success", function() {
+			this.a0 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+
+			var config = {
+				type: "priority",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(0);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(0);
+
+			this.a0 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+
+			config = {
+				type: "priority",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(1);
+		});
+
+		it("concurrent node should call all of the subnodes", function() {
+			this.a0 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+
+			var config = {
+				type: "concurrent",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(1);
+
+			this.a0 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+
+			config = {
+				type: "concurrent",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(1);
+		});
+
+		it("sequence node should call the states until one of them returns failure or running", function() {
+			this.a0 = function() { return Responses.FAILURE; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+
+			var config = {
+				type: "sequence",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(0);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(0);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(0);
+
+			this.a0 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.RUNNING; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+			config = {
+				type: "sequence",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(0);
+		});
+
+		it("sequence node should pick the running node", function() {
+			this.a0 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a0').andCallThrough();
+			this.a1 = function() { return Responses.RUNNING; };
+			spyOn(this, 'a1').andCallThrough();
+			this.a2 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a2').andCallThrough();
+			this.a3 = function() { return Responses.SUCCESS; };
+			spyOn(this, 'a3').andCallThrough();
+
+			var config = {
+				type: "sequence",
+				children: [
+					{ type: "action", execute: this.a0 },
+					{ type: "action", execute: this.a1 },
+					{ type: "action", execute: this.a2 },
+					{ type: "action", execute: this.a3 }
+				]
+			};
+
+			this.bt = new BehaviourTree(config);
+			this.bt.traverse();
+			this.bt.traverse();
+			expect(this.bt.nodeSequence[1].execute.callCount).toBe(1);
+			expect(this.bt.nodeSequence[2].execute.callCount).toBe(2);
+			expect(this.bt.nodeSequence[3].execute.callCount).toBe(0);
+			expect(this.bt.nodeSequence[4].execute.callCount).toBe(0);
+		});
 	});
 });

@@ -99,7 +99,7 @@ define(["./behaviour-tree-nodes", "./behaviour-tree-responses"], function(Nodes,
 					parent = this.nodeSequence[this.traversalStack[this.traversalStack.length - 1]];
 				}
 
-				if (result === Responses.SUCCESS&& parent instanceof Nodes.Priority) {
+				if (result === Responses.SUCCESS && parent instanceof Nodes.Priority) {
 					i = parent.endBranchIndex;
 					continue;
 				}

@@ -16,7 +16,6 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@namespace holds the different BT node types.
 	*/
 	var Nodes = {};
-
 	Nodes.READY = 0;
 	Nodes.RUNNING = 1;
 
