@@ -3,62 +3,10 @@ if (typeof define !== 'function') {
 }
 
 define(["./behaviour-tree-responses"], function(responses) {
-	var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
-		for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
-		function ctor() { this.constructor = child; }
-		ctor.prototype = parent.prototype;
-		child.prototype = new ctor();
-		child.__super__ = parent.prototype;
-		return child;
-	};
-
 	/**
 		@namespace holds the different BT node types.
 	*/
 	var Nodes = {};
-	Nodes.READY = 0;
-	Nodes.RUNNING = 1;
-
-	/**
-		Creates a new bt node.
-		@class This is the base node only used to be extended by the other nodes.
-		@inner
-	*/
-	var Node = (function() {
-		function Node() {
-			this.status = Nodes.READY;
-		}
-
-		/**
-			Sets the node to ready status.
-		*/
-		Node.prototype.setReady = function () {
-			this.status = Nodes.READY;
-		};
-
-		/**
-			Returns wether the node is ready or not.
-		*/
-		Node.prototype.isReady = function () {
-			return this.status == Nodes.READY;
-		};
-
-		/**
-			Sets the node to running status.
-		*/
-		Node.prototype.setReady = function () {
-			this.status = Nodes.RUNNING;
-		};
-
-		/**
-			Returns wether the node is running or not.
-		*/
-		Node.prototype.isRunning = function () {
-			return this.status == Nodes.RUNNING;
-		};
-
-		return Node;
-	})();
 
 	/**
 		Creates a new priority node.
@@ -67,11 +15,8 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@exports Priority as AI.Nodes.Priority.
 	*/
 	var Priority = (function() {
-		__extends(Priority, Node);
-
 		function Priority() {
 			this.endBranchIndex = 0;
-			Priority.__super__.constructor.call(this);
 		}
 
 		Nodes.Priority = Priority;
@@ -85,11 +30,8 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@exports Concurrent as AI.Nodes.Concurrent.
 	*/
 	var Concurrent = (function() {
-		__extends(Concurrent, Node);
-
 		function Concurrent() {
 			this.endBranchIndex = 0;
-			Concurrent.__super__.constructor.call(this);
 		}
 
 		Nodes.Concurrent = Concurrent;
@@ -104,12 +46,9 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@exports Sequence as AI.Nodes.Sequence.
 	*/
 	var Sequence = (function() {
-		__extends(Sequence, Node);
-
 		function Sequence() {
 			this.endBranchIndex = 0;
 			this.runningNodeIndex = 0;
-			Sequence.__super__.constructor.call(this);
 		}
 
 		Nodes.Sequence = Sequence;
@@ -125,12 +64,9 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@exports Loop as AI.Nodes.Loop.
 	*/
 	var Loop = (function() {
-		__extends(Loop, Node);
-
 		function Loop() {
 			this.endBranchIndex = 0;
 			this.runningNodeIndex = 0;
-			Loop.__super__.constructor.call(this);
 		}
 
 		Nodes.Loop = Loop;
@@ -138,16 +74,12 @@ define(["./behaviour-tree-responses"], function(responses) {
 	})();
 
 	/**
-		Creates a new decorator node.
+		Creates a new decorator node. TODO: Decorators are not yet implemented.
 		@class Decorator nodes are used for limiting the time another node can be running or the nuber of times it can run.
 		@exports Decorator as AI.Nodes.Decorator.
 	*/
 	var Decorator = (function() {
-		__extends(Decorator, Node);
-
-		function Decorator() {
-			Decorator.__super__.constructor.call(this);
-		}
+		function Decorator() {}
 
 		Nodes.Decorator = Decorator;
 		return Decorator;
@@ -161,11 +93,8 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@exports Action as AI.Nodes.Action.
 	*/
 	var Action = (function() {
-		__extends(Action, Node);
-
 		function Action(execute) {
 			this.execute = execute;
-			Action.__super__.constructor.call(this);
 		}
 
 		Nodes.Action = Action;
@@ -181,11 +110,8 @@ define(["./behaviour-tree-responses"], function(responses) {
 		@exports Condition as AI.Nodes.Condition.
 	*/
 	var Condition = (function() {
-		__extends(Condition, Node);
-
 		function Condition(execute) {
 			this.execute = execute;
-			Condition.__super__.constructor.call(this);
 		}
 
 		Nodes.Condition = Condition;
