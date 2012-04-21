@@ -89,7 +89,7 @@ define(["./behaviour-tree-nodes", "./behaviour-tree-responses"], function(Nodes,
 			Traverses the behaviour tree.
 		*/
 		BehaviourTree.prototype.traverse = function() {
-			var sequence = this.nodeSequence, node, result, parent, sequence_length = sequence.length, popped_parent;
+			var sequence = this.nodeSequence, node, result, parent, sequence_length = sequence.length;
 
 			for(var i = 0, len = sequence.length; i < len; i++) {
 				node = sequence[i];
@@ -136,7 +136,6 @@ define(["./behaviour-tree-nodes", "./behaviour-tree-responses"], function(Nodes,
 
 				this.traversalStack.push(i);
 				parent = node;
-				popped_parent = null;
 
 				if (node.runningNodeIndex !== undefined && node.runningNodeIndex !== 0) {
 					i = node.runningNodeIndex - 1;
