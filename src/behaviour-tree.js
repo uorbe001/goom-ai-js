@@ -14,13 +14,7 @@ define(["./behaviour-tree-nodes", "./behaviour-tree-responses"], function(Nodes,
 	*/
 	var BehaviourTree = (function() {
 		function BehaviourTree(config) {
-			var nodes = this.__parseConfig(config);
-			this.nodeSequence = new Array(nodes.length);
-			//Copy the nodes to a sequential array
-			for (var i = 0, len = nodes.length; i < len; i++) {
-				this.nodeSequence[i] = nodes[i];
-			}
-
+			this.nodeSequence = this.__parseConfig(config);
 			this.traversalStack = [];
 			this.runningNodeIndex = 0;
 		}
