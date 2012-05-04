@@ -17,6 +17,32 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 					{ "vertices": [2,0,-2, 3,0,-1, 4,0,-2] }
 				]
 			});
+
+			this.nm2 = new NavigationMesh({
+				"triangles": [
+					{"vertices": [-1,0,4, 0,0,4, -0.5,0,3]},
+					{"vertices": [1,0,4, 0,0,4, 0.5,0,3]},
+					{"vertices": [0,0,4, 0.5,0,3, -0.5,0,3]},
+					{"vertices": [0,0,2, 0.5,0,3, -0.5,0,3]},
+					{"vertices": [0,0,2, 0.5,0,1, 0.5,0,3]},
+					{"vertices": [0,0,2, 0.5,0,1, -0.5,0,1]},
+					{"vertices": [0,0,0, 0.5,0,1, -0.5,0,1]},
+
+					{"vertices": [0,0,0, -1,0,0, -0.5,0,1]},
+					{"vertices": [0,0,0, -1,0,0, -0.5,0,-1]},
+					{"vertices": [-2,0,-1, -1,0,0, -0.5,0,-1]},
+					{"vertices": [-2,0,-1, -1,0,0, -3,0,0]},
+					{"vertices": [-1,0,2, -1,0,0, -0.5,0,1]},
+					{"vertices": [-1,0,2, -1,0,0, -3,0,0]},
+					
+					{"vertices": [0,0,0, 1,0,0, 0.5,0,1]},
+					{"vertices": [0,0,0, 1,0,0, 0.5,0,-1]},
+					{"vertices": [2,0,-1, 1,0,0, 0.5,0,-1]},
+					{"vertices": [2,0,-1, 1,0,0, 3,0,0]},
+					{"vertices": [1,0,2, 1,0,0, 0.5,0,1]},
+					{"vertices": [1,0,2, 1,0,0, 3,0,0]}
+				]
+			});
 		});
 
 		it("should create the navigation mesh correctly from the data", function() {
@@ -40,6 +66,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[0].edges[2].vertices[1].x).toBe(1);
 			expect(this.nm.triangles[0].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[0].edges[2].vertices[1].z).toBe(1);
+			expect(this.nm.triangles[0].getAdjacentTriangles([]).length).toBe(1);
 
 			expect(this.nm.triangles[1].edges[0].vertices[0].x).toBe(0);
 			expect(this.nm.triangles[1].edges[0].vertices[0].y).toBe(0);
@@ -61,13 +88,14 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[1].edges[2].vertices[1].x).toBe(2);
 			expect(this.nm.triangles[1].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[1].edges[2].vertices[1].z).toBe(0);
+			expect(this.nm.triangles[1].getAdjacentTriangles([]).length).toBe(2);
 
-			expect(this.nm.triangles[2].edges[0].vertices[0].x).toBe(2);
+			expect(this.nm.triangles[2].edges[0].vertices[0].x).toBe(1);
 			expect(this.nm.triangles[2].edges[0].vertices[0].y).toBe(0);
-			expect(this.nm.triangles[2].edges[0].vertices[0].z).toBe(0);
-			expect(this.nm.triangles[2].edges[0].vertices[1].x).toBe(1);
+			expect(this.nm.triangles[2].edges[0].vertices[0].z).toBe(1);
+			expect(this.nm.triangles[2].edges[0].vertices[1].x).toBe(2);
 			expect(this.nm.triangles[2].edges[0].vertices[1].y).toBe(0);
-			expect(this.nm.triangles[2].edges[0].vertices[1].z).toBe(1);
+			expect(this.nm.triangles[2].edges[0].vertices[1].z).toBe(0);
 
 			expect(this.nm.triangles[2].edges[1].vertices[0].x).toBe(2);
 			expect(this.nm.triangles[2].edges[1].vertices[0].y).toBe(0);
@@ -82,6 +110,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[2].edges[2].vertices[1].x).toBe(2);
 			expect(this.nm.triangles[2].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[2].edges[2].vertices[1].z).toBe(2);
+			expect(this.nm.triangles[2].getAdjacentTriangles([]).length).toBe(2);
 
 			expect(this.nm.triangles[3].edges[0].vertices[0].x).toBe(2);
 			expect(this.nm.triangles[3].edges[0].vertices[0].y).toBe(0);
@@ -103,6 +132,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[3].edges[2].vertices[1].x).toBe(3);
 			expect(this.nm.triangles[3].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[3].edges[2].vertices[1].z).toBe(1);
+			expect(this.nm.triangles[3].getAdjacentTriangles([]).length).toBe(2);
 
 			expect(this.nm.triangles[4].edges[0].vertices[0].x).toBe(2);
 			expect(this.nm.triangles[4].edges[0].vertices[0].y).toBe(0);
@@ -124,13 +154,14 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[4].edges[2].vertices[1].x).toBe(3);
 			expect(this.nm.triangles[4].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[4].edges[2].vertices[1].z).toBe(1);
+			expect(this.nm.triangles[4].getAdjacentTriangles([]).length).toBe(3);
 
-			expect(this.nm.triangles[5].edges[0].vertices[0].x).toBe(3);
+			expect(this.nm.triangles[5].edges[0].vertices[0].x).toBe(4);
 			expect(this.nm.triangles[5].edges[0].vertices[0].y).toBe(0);
-			expect(this.nm.triangles[5].edges[0].vertices[0].z).toBe(1);
-			expect(this.nm.triangles[5].edges[0].vertices[1].x).toBe(4);
+			expect(this.nm.triangles[5].edges[0].vertices[0].z).toBe(0);
+			expect(this.nm.triangles[5].edges[0].vertices[1].x).toBe(3);
 			expect(this.nm.triangles[5].edges[0].vertices[1].y).toBe(0);
-			expect(this.nm.triangles[5].edges[0].vertices[1].z).toBe(0);
+			expect(this.nm.triangles[5].edges[0].vertices[1].z).toBe(1);
 
 			expect(this.nm.triangles[5].edges[1].vertices[0].x).toBe(3);
 			expect(this.nm.triangles[5].edges[1].vertices[0].y).toBe(0);
@@ -145,6 +176,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[5].edges[2].vertices[1].x).toBe(4);
 			expect(this.nm.triangles[5].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[5].edges[2].vertices[1].z).toBe(2);
+			expect(this.nm.triangles[5].getAdjacentTriangles([]).length).toBe(1);
 
 			expect(this.nm.triangles[6].edges[0].vertices[0].x).toBe(2);
 			expect(this.nm.triangles[6].edges[0].vertices[0].y).toBe(0);
@@ -166,6 +198,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[6].edges[2].vertices[1].x).toBe(3);
 			expect(this.nm.triangles[6].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[6].edges[2].vertices[1].z).toBe(-1);
+			expect(this.nm.triangles[6].getAdjacentTriangles([]).length).toBe(2);
 
 			expect(this.nm.triangles[7].edges[0].vertices[0].x).toBe(2);
 			expect(this.nm.triangles[7].edges[0].vertices[0].y).toBe(0);
@@ -187,6 +220,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[7].edges[2].vertices[1].x).toBe(3);
 			expect(this.nm.triangles[7].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[7].edges[2].vertices[1].z).toBe(-1);
+			expect(this.nm.triangles[7].getAdjacentTriangles([]).length).toBe(2);
 
 			expect(this.nm.triangles[8].edges[0].vertices[0].x).toBe(2);
 			expect(this.nm.triangles[8].edges[0].vertices[0].y).toBe(0);
@@ -208,6 +242,7 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[8].edges[2].vertices[1].x).toBe(4);
 			expect(this.nm.triangles[8].edges[2].vertices[1].y).toBe(0);
 			expect(this.nm.triangles[8].edges[2].vertices[1].z).toBe(-2);
+			expect(this.nm.triangles[8].getAdjacentTriangles([]).length).toBe(1);
 
 			expect(this.nm.triangles[0].normal.x).toBe(0);
 			expect(Math.abs(this.nm.triangles[0].normal.y)).toBe(1);
@@ -245,6 +280,62 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm.triangles[0]).toBe(tri);
 			tri = this.nm.__selectCorrespondingTriangle(new Mathematics.Vector3D(0.5,0.5,0));
 			expect(this.nm.triangles[1]).toBe(tri);
+			tri = this.nm.__selectCorrespondingTriangle(new Mathematics.Vector3D(3,0.5,-1.5));
+			expect(this.nm.triangles[8]).toBe(tri);
+		});
+
+		it("should build the abstract search graph correctly", function() {
+			expect(this.nm.abstractGraph.thirdDegreeNodes.length).toBe(0);
+			expect(this.nm.abstractGraph.secondDegreeNodes.length).toBe(0);
+			expect(this.nm.abstractGraph.firstDegreeNodes.length).toBe(9);
+			expect(this.nm.abstractGraph.zeroDegreeNodes.length).toBe(0);
+
+			expect(this.nm.abstractGraph.firstDegreeNodes[0].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[1].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[2].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[3].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[4].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[5].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[6].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[7].root).toBeNull();
+			expect(this.nm.abstractGraph.firstDegreeNodes[8].root).toBeNull();
+
+			expect(this.nm.abstractGraph.firstDegreeNodes[0].linkedNodes.length).toBe(1);
+			expect(this.nm.abstractGraph.firstDegreeNodes[1].linkedNodes.length).toBe(1);
+			expect(this.nm.abstractGraph.firstDegreeNodes[2].linkedNodes.length).toBe(1);
+			expect(this.nm.abstractGraph.firstDegreeNodes[3].linkedNodes.length).toBe(2);
+			expect(this.nm.abstractGraph.firstDegreeNodes[4].linkedNodes.length).toBe(2);
+			expect(this.nm.abstractGraph.firstDegreeNodes[5].linkedNodes.length).toBe(3);
+			expect(this.nm.abstractGraph.firstDegreeNodes[6].linkedNodes.length).toBe(2);
+			expect(this.nm.abstractGraph.firstDegreeNodes[7].linkedNodes.length).toBe(2);
+			expect(this.nm.abstractGraph.firstDegreeNodes[8].linkedNodes.length).toBe(2);
+
+			expect(this.nm2.abstractGraph.thirdDegreeNodes.length).toBe(2);
+			expect(this.nm2.abstractGraph.secondDegreeNodes.length).toBe(11);
+			expect(this.nm2.abstractGraph.firstDegreeNodes.length).toBe(6);
+			expect(this.nm2.abstractGraph.zeroDegreeNodes.length).toBe(0);
+
+			expect(this.nm2.abstractGraph.firstDegreeNodes[0].root).toBe(this.nm2.triangles[6].abstractNode);
+			expect(this.nm2.abstractGraph.firstDegreeNodes[1].root).toBe(this.nm2.triangles[6].abstractNode);
+			expect(this.nm2.abstractGraph.firstDegreeNodes[2].root).toBe(this.nm2.triangles[6].abstractNode);
+			expect(this.nm2.abstractGraph.firstDegreeNodes[3].root).toBe(this.nm2.triangles[6].abstractNode);
+			expect(this.nm2.abstractGraph.firstDegreeNodes[4].root).toBe(this.nm2.triangles[6].abstractNode);
+			expect(this.nm2.abstractGraph.firstDegreeNodes[5].root).toBe(this.nm2.triangles[6].abstractNode);
+		});
+
+		it("should return the correct node path doing a simple search when both points are in the same tree", function() {
+			var path = [];
+			
+			this.nm.findPath(new Mathematics.Vector3D(0,0.5,0), new Mathematics.Vector3D(3, 0.5, -1.5), path);
+			expect(path[0]).toBe(this.nm.triangles[0].abstractNode);
+			expect(path[1]).toBe(this.nm.triangles[1].abstractNode);
+			expect(path[2]).toBe(this.nm.triangles[2].abstractNode);
+			expect(path[3]).toBe(this.nm.triangles[3].abstractNode);
+			expect(path[4]).toBe(this.nm.triangles[4].abstractNode);
+			expect(path[5]).toBe(this.nm.triangles[6].abstractNode);
+			expect(path[6]).toBe(this.nm.triangles[7].abstractNode);
+			expect(path[7]).toBe(this.nm.triangles[8].abstractNode);
+			//TODO more cases.
 		});
 	});
 });

@@ -3,12 +3,14 @@ if (typeof define !== 'function') {
 }
 
 define(["goom-math"], function(Mathematics) {
+	var edge_list = [];
+
 	var Triangle = (function(){
 		function Triangle(vertex_one, vertex_two, vertex_three) {
 			this.edges = [];
-			this.edges.push(new Edge(vertex_one, vertex_two));
-			this.edges.push(new Edge(vertex_one, vertex_three));
-			this.edges.push(new Edge(vertex_two, vertex_three));
+			this.edges.push(Edge.createEdge(vertex_one, vertex_two, this));
+			this.edges.push(Edge.createEdge(vertex_one, vertex_three, this));
+			this.edges.push(Edge.createEdge(vertex_two, vertex_three, this));
 			this.vertices = [];
 			this.vertices.push(vertex_one);
 			this.vertices.push(vertex_two);
@@ -18,7 +20,32 @@ define(["goom-math"], function(Mathematics) {
 			vertex_two.substract(vertex_one, this.normal);
 			this.normal.crossProduct(vertex_three.substract(vertex_one, new Mathematics.Vector3D()));
 			this.normal.normalize();
+
+			this.orthocenter = new Mathematics.Vector3D();
+			this.edges[0].vertices[0].add(this.edges[0].vertices[1], this.orthocenter);
+			this.orthocenter.add(this.edges[1].vertices[1]).scale(1/3);
+
+			this.abstractNode = null;
 		}
+
+		Triangle.prototype.countUnconstrainedEdges = function() {
+			var count = 0;
+
+			for(var i = 0; i < 3; i++) {
+				if (this.edges[i].triangles.length > 1) count += 1;
+			}
+
+			return count;
+		};
+
+		Triangle.prototype.getAdjacentTriangles = function (triangles) {
+			var edge; triangles.length = 0;
+			for(var i = 0; i < 3; i++) {
+				edge = this.edges[i];
+				if (edge.triangles.length > 1) triangles.push(edge.triangles[0] === this? edge.triangles[1]: edge.triangles[0]);
+			}
+			return triangles;
+		};
 
 		return Triangle;
 	})();
@@ -28,34 +55,255 @@ define(["goom-math"], function(Mathematics) {
 			this.vertices = [];
 			this.vertices.push(vertex_one);
 			this.vertices.push(vertex_two);
+			this.triangles = [];
 		}
 
+		Edge.createEdge = function(vertex_one, vertex_two, triangle) {
+			for (var i = 0, len = edge_list.length; i < len; i++) {
+				if ((edge_list[i].vertices[0].x == vertex_one.x && edge_list[i].vertices[0].z == vertex_one.z &&
+						edge_list[i].vertices[0].z == vertex_one.z && edge_list[i].vertices[1].x == vertex_two.x &&
+						edge_list[i].vertices[1].y == vertex_two.y && edge_list[i].vertices[1].z == vertex_two.z) ||
+						(edge_list[i].vertices[1].x == vertex_one.x && edge_list[i].vertices[1].z == vertex_one.z &&
+						edge_list[i].vertices[1].z == vertex_one.z && edge_list[i].vertices[0].x == vertex_two.x &&
+						edge_list[i].vertices[0].y == vertex_two.y && edge_list[i].vertices[0].z == vertex_two.z)) {
+					edge_list[i].addAdjacentTriangle(triangle);
+					return edge_list[i];
+				}
+			}
+
+			var edge = new Edge(vertex_one, vertex_two);
+			edge.addAdjacentTriangle(triangle);
+			edge_list.push(edge);
+			return edge;
+		};
+
+		Edge.prototype.addAdjacentTriangle = function(triangle) {
+			this.triangles.push(triangle);
+		};
+
 		return Edge;
+	})();
+
+	/**
+		Creates a node for the abstract graph.
+		@property {Number} degree The degree of this node (0-3).
+		@property {Boolean} isVisited.
+		@property {Number} squaredDistanceToGoal The barycentric distance to the goal, set on initialize.
+		@property {Array} linkedNodes Array of nodes linked to this node.
+		@property {AbstractNode} root The root node of this node.
+		@property {Triangle} triangle The triangle corresponding to this node.
+		@property {AbstractNode} searchParent The parent in the current search.
+		@param {Triangle} The triangle the node represents.
+		@param {Number} degree The degree of this node (0-3).
+	*/
+	var AbstractNode = (function(){
+		function AbstractNode(triangle, degree) {
+			this.degree = degree !== undefined && degree !== null? degree: 0;
+			this.isVisited = false;
+			this.squaredDistanceToGoal = 0;
+			triangle.abstractNode = this;
+			this.linkedNodes = [];
+			this.root = null;
+			this.searchParent = null;
+			this.triangle = triangle;
+
+			var adjacent_triangles = triangle.getAdjacentTriangles([]), adjacent_triangle;
+			for(var i = 0, len = adjacent_triangles.length; i < len; i++) {
+				adjacent_triangle = adjacent_triangles[i];
+				if (adjacent_triangle.abstractNode !== null) {
+					if (this.linkedNodes.indexOf(adjacent_triangle.abstractNode) < 0) this.linkedNodes.push(adjacent_triangle.abstractNode);
+					if(adjacent_triangle.abstractNode.linkedNodes.indexOf(this) < 0) adjacent_triangle.abstractNode.linkedNodes.push(this);
+				}
+			}
+		}
+
+		return AbstractNode;
+	})();
+
+	/**
+		Creates an AbstractGraph
+		@class This represents the abstract graph structure used for pathfinding.
+		@param [Array] triangles The array of triangles in the navigation mesh.
+		@property {Mathematics.Vector3D} __helperVector Vector created in class scope to avoid the construction of objects at runtime.
+		@property {Array} __helperArray Array created in class scope to avoid object creation at runtime.
+		@inner
+	*/
+	var AbstractGraph = (function(){
+		function AbstractGraph(triangles) {
+			this.zeroDegreeNodes = [], this.firstDegreeNodes = [], this.secondDegreeNodes = [], this.thirdDegreeNodes = [];
+			this.__helperArray = [];
+			var processing_queue = [], i, len, triangle, edge, j, len2, adjacent_triangles = this.__helperArray, adjacent_triangle;
+			//Go through the triangles and find the triangles with one or less unconstrained edges.
+			for (i = 0, len = triangles.length; i < len; i++) {
+				triangle = triangles[i];
+
+				switch (triangle.countUnconstrainedEdges()) {
+					case 0: this.zeroDegreeNodes.push(new AbstractNode(triangle, 0));
+							break;
+					case 1: this.firstDegreeNodes.push(new AbstractNode(triangle, 1));
+							//store the adjacent triangle for processing.
+							for (j = 0, len2 = triangle.edges.length; j < len2; j++) {
+								edge = triangle.edges[j];
+								if (edge.triangles.length > 1) {
+									processing_queue.push(edge.triangles[0] === triangle? edge.triangles[1]: edge.triangles[0]);
+								}
+							}
+							break;
+				}
+			}
+
+			var is_first_degree, unmapped_count;
+			//Go through the processing queue and expand the graph
+			while(processing_queue.length > 0) {
+				triangle = processing_queue.pop();
+				adjacent_triangles = triangle.getAdjacentTriangles(adjacent_triangles);
+				is_first_degree = true, unmapped_count = 0;
+				for (i = 0, len = adjacent_triangles.length; i < len; i++) {
+					adjacent_triangle = adjacent_triangles[i];
+
+					if (adjacent_triangle.abstractNode === null) {
+						unmapped_count += 1;
+						if (unmapped_count > 1) { is_first_degree = false; break; }
+						continue;
+					}
+
+					if (adjacent_triangle.abstractNode.degree !== 1) {
+						is_first_degree = false;
+						break;
+					}
+				}
+
+				if (is_first_degree && triangle.abstractNode === null) {
+					this.firstDegreeNodes.push(new AbstractNode(triangle, 1));
+					//store the adjacent triangle for processing.
+					for (j = 0, len2 = triangle.edges.length; j < len2; j++) {
+						edge = triangle.edges[j];
+						if (edge.triangles.length > 1) {
+							processing_queue.push(edge.triangles[0] === triangle? edge.triangles[1]: edge.triangles[0]);
+						}
+					}
+				}
+			}
+			
+			var is_third_degree;
+			//find the nodes wich qualify to be mapped as a third degree node and map them.
+			for (i = 0, len = triangles.length; i < len; i++) {
+				triangle = triangles[i];
+
+				if (triangle.abstractNode === null && triangle.countUnconstrainedEdges() === 3) {
+					adjacent_triangles = triangle.getAdjacentTriangles(adjacent_triangles);
+					is_third_degree = true;
+					for (j = 0, len2 = adjacent_triangles.length; j < len2; j++) {
+						adjacent_triangle = adjacent_triangles[j];
+						if (adjacent_triangle.abstractNode !== null && adjacent_triangle.abstractNode.degree === 1) {
+							is_third_degree = false;
+							break;
+						}
+					}
+
+					if (!is_third_degree) continue;
+
+					this.thirdDegreeNodes.push(new AbstractNode(triangle, 3));
+					//Map the unmapped adjacent triangles to second degree nodes.
+					for (j = 0, len2 = adjacent_triangles.length; j < len2; j++) {
+						adjacent_triangle = adjacent_triangles[j];
+						if (adjacent_triangle.abstractNode === null) {
+							this.secondDegreeNodes.push(new AbstractNode(adjacent_triangle, 2));
+						}
+					}
+
+				}
+			}
+
+			//The remaining unmapped triangles are degree 2 nodes.
+			for (i = 0, len = triangles.length; i < len; i++) {
+				triangle = triangles[i];
+				if (triangle.abstractNode === null) {
+					this.secondDegreeNodes.push(new AbstractNode(triangle, 2));
+				}
+			}
+
+
+			var set_root_on_tree = function(current_node, root, visited_queue) {
+				current_node.root = root;
+				visited_queue.push(current_node);
+				for (var k = 0, len3 = current_node.linkedNodes.length; k < len3; k++) {
+					next_node = current_node.linkedNodes[k];
+					if (next_node.degree === 1 && visited_queue.indexOf(next_node) < 0) set_root_on_tree(next_node, root, visited_queue);
+				}
+			};
+
+			//Set the first degree node's roots
+			for (i = 0, len = this.secondDegreeNodes.length; i < len; i++) {
+				node = this.secondDegreeNodes[i];
+				for (j = 0, len2 = node.linkedNodes.length; j < len2; j++) {
+					linked_node = node.linkedNodes[j];
+					if (linked_node.degree === 1) set_root_on_tree(linked_node, node, [node]);
+				}
+			}
+		}
+
+		AbstractGraph.prototype.initialize = function(goal) {
+			var i, len, node;
+			for (i = 0, len = this.zeroDegreeNodes.length; i < len; i++) {
+				node = this.zeroDegreeNodes[i];
+				node.isVisited = false;
+				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
+				node.searchParent = null;
+			}
+
+			for (i = 0, len = this.firstDegreeNodes.length; i < len; i++) {
+				node = this.firstDegreeNodes[i];
+				node.isVisited = false;
+				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
+				node.searchParent = null;
+			}
+
+			for (i = 0, len = this.secondDegreeNodes.length; i < len; i++) {
+				node = this.secondDegreeNodes[i];
+				node.isVisited = false;
+				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
+				node.searchParent = null;
+			}
+
+			for (i = 0, len = this.thirdDegreeNodes.length; i < len; i++) {
+				node = this.thirdDegreeNodes[i];
+				node.isVisited = false;
+				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
+				node.searchParent = null;
+			}
+		};
+
+		return AbstractGraph;
 	})();
 
 	/**
 		Creates a new Navigation Mesh.
 		@class Navigation Meshes are used for pathfinding, they hold the mesh where agents can move.
 		@param {json} config The configuration of the navigation mesh, describing the triangles inside the mesh, etc.
-		@property [Array] triangles The triangles forming the mesh.
+		@property {Array} triangles The triangles forming the mesh.
+		@property {AbstractGraph} abstractGrapth This holds the structure of the abstract graph used for pathfinding.
 		@property {Mathematics.Vector3D} __helperVector Helper vector used to avoid garbage at runtime.
 		@property {Mathematics.Vector3D} __helperVector2 Helper vector used to avoid garbage at runtime.
 		@property {Mathematics.Vector3D} __helperVector3 Helper vector used to avoid garbage at runtime.
+		@property {Array} __openNodes This array is created here to avoid creating garbage at runtime.
 		@exports NavigationMesh as AI.NavigationMesh.
 	*/
 	var NavigationMesh = (function() {
 		function NavigationMesh(config) {
 			this.triangles = this.__loadMesh(config);
+			this.abstractGraph = new AbstractGraph(this.triangles);
+			edge_list.length = 0; //Empty the edge list. This is a very dirty way to store it, but it works.
 			this.__helperVector = new Mathematics.Vector3D();
 			this.__helperVector2 = new Mathematics.Vector3D();
 			this.__helperVector3 = new Mathematics.Vector3D();
+			this.__openNodes = [];
 		}
 
 		/**
 			Loads the mesh from the config.
 			@param {json} config The configuration of the navigation mesh, describing the triangles inside the mesh, etc.
 			@returns {Array} the array of triangles in this mesh.
-			@inner
 		*/
 		NavigationMesh.prototype.__loadMesh = function(config) {
 			var triangles = [], triangle_data, vertices_data;
@@ -72,7 +320,7 @@ define(["goom-math"], function(Mathematics) {
 		};
 
 		/**
-			Selects the triangle that is most likely holding the given point (the closest triangle).
+			Selects the triangle that is most likely under the given point (the closest triangle).
 			@param {Mathematics.Vector3D} point The vector to find inside the mesh.
 			@returns {Triangle} the triangle holding the point.
 		*/
@@ -104,6 +352,52 @@ define(["goom-math"], function(Mathematics) {
 			return triangle;
 		};
 
+		var orderNodes = function(a, b) {
+			return a.squaredDistanceToGoal - b.squaredDistanceToGoal;
+		};
+
+		/**
+			Returns the path from the origin to the goal.
+			@param {Mathematics.Vector3D} origin The origin point.
+			@param {Mathematics.Vector3D} goal The goal point.
+			@returns {Array} Array holding the path.
+		*/
+		NavigationMesh.prototype.findPath = function (origin, goal, path) {
+			var open_node, i, len;
+			var origin_triangle = this.__selectCorrespondingTriangle(origin), origin_node = origin_triangle.abstractNode;
+			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
+			this.abstractGraph.initialize(goal_node);
+
+			if ((origin_node.degree == goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root))) {
+				//Since the two nodes are in the same tree, we can do a simple search like best first.
+				this.__openNodes.length = 0, path.length = 0;
+				this.__openNodes.unshift(origin_node);
+
+				while (this.__openNodes.length > 0) {
+					this.__openNodes.sort(orderNodes);
+					open_node = this.__openNodes.shift(), open_node.isVisited = true;
+					//If the actual node is the goal node, stop search.
+					if (open_node === goal_node) { break; }
+					//Push into the queue the nodes connected to this one.
+					for (i = 0, len = open_node.linkedNodes.length; i < len; i++) {
+						if (!open_node.linkedNodes[i].isVisited) {
+							open_node.linkedNodes[i].searchParent = open_node;
+							this.__openNodes.unshift(open_node.linkedNodes[i]);
+						}
+					}
+				}
+
+				//Create the search path to be returned by backtracking.
+				while (open_node !== null && open_node !== undefined) {
+					path.unshift(open_node);
+					open_node = open_node.searchParent;
+				}
+
+				return path;
+			}
+			//TODO
+		};
+		
 		return NavigationMesh;
 	})();
 
