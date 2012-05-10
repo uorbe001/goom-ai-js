@@ -25,6 +25,12 @@ define(["goom-math"], function(Mathematics) {
 			this.edges[0].vertices[0].add(this.edges[0].vertices[1], this.orthocenter);
 			this.orthocenter.add(this.edges[1].vertices[1]).scale(1/3);
 
+			//Calculate matrix used to project a point onto the triangle.
+			this.projectOntoTriangleMatrix = new Mathematics.Matrix4D();
+			this.projectOntoTriangleMatrix.setDiagonal(1 - this.normal.x, 1 - this.normal.y, 1 - this.normal.z, 1);
+			//This should work to create the projection matrix, but for some reason it doesn't TODO.
+			//this.projectOntoTriangleMatrix.lookAt(this.orthocenter,
+			//	this.orthocenter.add(this.normal, new Mathematics.Vector3D()), new Mathematics.Vector3D(0, 0, 0).normalize());
 			this.abstractNode = null;
 		}
 
@@ -93,6 +99,7 @@ define(["goom-math"], function(Mathematics) {
 		@property {AbstractNode} root The root node of this node.
 		@property {Triangle} triangle The triangle corresponding to this node.
 		@property {AbstractNode} searchParent The parent in the current search.
+		@property {Array} edgeEndPoints The endpoints of edge formed by second degree nodes.
 		@param {Triangle} The triangle the node represents.
 		@param {Number} degree The degree of this node (0-3).
 	*/
@@ -104,6 +111,7 @@ define(["goom-math"], function(Mathematics) {
 			triangle.abstractNode = this;
 			this.linkedNodes = [];
 			this.root = null;
+			this.edgeEndPoints = [];
 			this.searchParent = null;
 			this.triangle = triangle;
 
@@ -229,7 +237,7 @@ define(["goom-math"], function(Mathematics) {
 				visited_queue.push(current_node);
 				for (var k = 0, len3 = current_node.linkedNodes.length; k < len3; k++) {
 					next_node = current_node.linkedNodes[k];
-					if (next_node.degree === 1 && visited_queue.indexOf(next_node) < 0) set_root_on_tree(next_node, root, visited_queue);
+					if (next_node.degree === current_node.degree && visited_queue.indexOf(next_node) < 0) set_root_on_tree(next_node, root, visited_queue);
 				}
 			};
 
@@ -239,6 +247,34 @@ define(["goom-math"], function(Mathematics) {
 				for (j = 0, len2 = node.linkedNodes.length; j < len2; j++) {
 					linked_node = node.linkedNodes[j];
 					if (linked_node.degree === 1) set_root_on_tree(linked_node, node, [node]);
+				}
+			}
+
+			var enqueue_edge_nodes = function(current_node, edge_nodes, edge_points) {
+				if (current_node.degree == 2 && edge_nodes.indexOf(current_node) < 0) {
+					edge_nodes.push(current_node);
+					for (var k = 0, len3 = current_node.linkedNodes.length; k < len3; k++) {
+						next_node = current_node.linkedNodes[k];
+						enqueue_edge_nodes(next_node, edge_nodes, edge_points);
+					}
+				} else if (current_node.degree == 3 && edge_points.indexOf(current_node) < 0) {
+					edge_points.push(current_node);
+				}
+			};
+
+			var edge_nodes = [], edge_points = [], cur_node;
+			//Set the second degree node's edges
+			for (i = 0, len = this.secondDegreeNodes.length; i < len; i++) {
+				edge_nodes.length = 0, edge_points.length = 0;
+				node = this.secondDegreeNodes[i];
+				if (node.edgeEndPoints.length > 0) continue;
+				enqueue_edge_nodes(node, edge_nodes, edge_points);
+
+				for (j = 0, len2 = edge_nodes.length; j < len2; j++) {
+					cur_node = edge_nodes[j];
+					if (cur_node.edgeEndPoints.length > 0) continue;
+					cur_node.edgeEndPoints.push(edge_points[0]);
+					cur_node.edgeEndPoints.push(edge_points[edge_points.length > 1? 1: 0]);
 				}
 			}
 		}
@@ -329,8 +365,7 @@ define(["goom-math"], function(Mathematics) {
 			for (var i = 0, len = this.triangles.length; i < len; i++) {
 				triangle = this.triangles[i];
 				//Project point onto triangle
-				triangle.normal.componentProduct(point, this.__helperVector);
-				point.substract(this.__helperVector, this.__helperVector);
+				triangle.projectOntoTriangleMatrix.transformVector(point, this.__helperVector);
 				//Calculate basis vectors
 				triangle.vertices[1].substract(triangle.vertices[0], this.__helperVector2);
 				triangle.vertices[2].substract(triangle.vertices[0], this.__helperVector3);
@@ -346,7 +381,8 @@ define(["goom-math"], function(Mathematics) {
 				u = (dot11 * dot02 - dot01 * dot12) * inverseDenominator;
 				v = (dot00 * dot12 - dot01 * dot02) * inverseDenominator;
 				//Check if point is in triangle
-				if ((u >= 0) && (v >= 0) && (u + v < 1)) break;
+				if ((u >= 0) && (v >= 0) && (u + v <= 1)) break;
+				triangle = null;
 			}
 
 			return triangle;
@@ -368,7 +404,9 @@ define(["goom-math"], function(Mathematics) {
 			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
 			this.abstractGraph.initialize(goal_node);
 
-			if ((origin_node.degree == goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root))) {
+			if ((origin_node.degree == goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root)) ||
+					((origin_node.degree == 1 && goal_node.degree == 2) && (origin_node.root == goal_node)) ||
+					((goal_node.degree == 1 && origin_node.degree == 2) && (goal_node.root == origin_node))) {
 				//Since the two nodes are in the same tree, we can do a simple search like best first.
 				this.__openNodes.length = 0, path.length = 0;
 				this.__openNodes.unshift(origin_node);
@@ -387,6 +425,7 @@ define(["goom-math"], function(Mathematics) {
 					}
 				}
 
+				if (open_node !== goal_node) path.length = 0;
 				//Create the search path to be returned by backtracking.
 				while (open_node !== null && open_node !== undefined) {
 					path.unshift(open_node);
@@ -394,6 +433,12 @@ define(["goom-math"], function(Mathematics) {
 				}
 
 				return path;
+			}
+
+			if ((origin_node.degree == goal_node.degree == 2) && ((origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[0] &&
+					(origin_node.edgeEndPoints[1] === goal_node.edgeEndPoints[0])) || (origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1] &&
+					origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1]))) {
+
 			}
 			//TODO
 		};
