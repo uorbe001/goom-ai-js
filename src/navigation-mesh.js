@@ -414,6 +414,7 @@ define(["goom-math"], function(Mathematics) {
 			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
 			this.abstractGraph.initialize(goal_node);
 
+			//If both nodes are degree-1 in the same tree or one is a degree-1 node and the other one the parent of the tree...
 			if ((origin_node.degree == goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root)) ||
 					((origin_node.degree == 1 && goal_node.degree == 2) && (origin_node.root == goal_node)) ||
 					((goal_node.degree == 1 && origin_node.degree == 2) && (goal_node.root == origin_node))) {
@@ -445,9 +446,12 @@ define(["goom-math"], function(Mathematics) {
 				return path;
 			}
 
-			if ((origin_node.degree == goal_node.degree == 2) && ((origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[0] &&
+			//If both are degree-2 nodes in the same edge or one of them is one of the degree-3 nodes in the edge of the other node...
+			if (((origin_node.degree == goal_node.degree == 2) && ((origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[0] &&
 					(origin_node.edgeEndPoints[1] === goal_node.edgeEndPoints[0])) || (origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1] &&
-					origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1]))) {
+					origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1]))) || (((origin_node.degree == 2 && goal_node.degree == 3 &&
+					(origin_node.edgeEndPoints[0] == goal_node || origin_node.edgeEndPoints[1] == goal_node)) ||
+					(origin_node.degree == 3 && goal_node.degree == 2 && (goal_node.edgeEndPoints[0] == origin_node || goal_node.edgeEndPoints[1] == origin_node))))) {
 				//The nodes are in the same ring. A* search should do it.
 				var tentative_g_score = 0;
 				this.__openNodes.length = 0, path.length = 0;
