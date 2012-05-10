@@ -288,6 +288,10 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(this.nm2.triangles[0]).toBe(tri);
 			tri = this.nm2.__selectCorrespondingTriangle(new Mathematics.Vector3D(0,0.5,0.5));
 			expect(this.nm2.triangles[6]).toBe(tri);
+			tri = this.nm2.__selectCorrespondingTriangle(new Mathematics.Vector3D(-2,0.5,1));
+			expect(this.nm2.triangles[12]).toBe(tri);
+			tri = this.nm2.__selectCorrespondingTriangle(new Mathematics.Vector3D(-0.5,0.5,-0.5));
+			expect(this.nm2.triangles[8]).toBe(tri);
 		});
 
 		it("should build the abstract search graph correctly", function() {
@@ -399,6 +403,13 @@ requirejs(["../../src/navigation-mesh", "goom-math"], function(NavigationMesh, M
 			expect(path[4]).toBe(this.nm2.triangles[5].abstractNode);
 			expect(path[5]).toBe(this.nm2.triangles[6].abstractNode);
 			expect(path.length).toBe(6);
+
+			this.nm2.findPath(new Mathematics.Vector3D(-2,0.5,1), new Mathematics.Vector3D(-0.5,0.5,-0.5), path);
+			expect(path[0]).toBe(this.nm2.triangles[12].abstractNode);
+			expect(path[1]).toBe(this.nm2.triangles[11].abstractNode);
+			expect(path[2]).toBe(this.nm2.triangles[7].abstractNode);
+			expect(path[3]).toBe(this.nm2.triangles[8].abstractNode);
+			expect(path.length).toBe(4);
 			//TODO more cases.
 		});
 	});

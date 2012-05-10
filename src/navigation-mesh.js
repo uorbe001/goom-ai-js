@@ -95,6 +95,7 @@ define(["goom-math"], function(Mathematics) {
 		@property {Number} degree The degree of this node (0-3).
 		@property {Boolean} isVisited.
 		@property {Number} squaredDistanceToGoal The barycentric distance to the goal, set on initialize.
+		@property {Number} gScore The calculated g-value used for A* search.
 		@property {Array} linkedNodes Array of nodes linked to this node.
 		@property {AbstractNode} root The root node of this node.
 		@property {Triangle} triangle The triangle corresponding to this node.
@@ -108,6 +109,7 @@ define(["goom-math"], function(Mathematics) {
 			this.degree = degree !== undefined && degree !== null? degree: 0;
 			this.isVisited = false;
 			this.squaredDistanceToGoal = 0;
+			this.gScore = 0;
 			triangle.abstractNode = this;
 			this.linkedNodes = [];
 			this.root = null;
@@ -286,6 +288,7 @@ define(["goom-math"], function(Mathematics) {
 				node.isVisited = false;
 				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
 				node.searchParent = null;
+				node.gScore = 0;
 			}
 
 			for (i = 0, len = this.firstDegreeNodes.length; i < len; i++) {
@@ -293,6 +296,7 @@ define(["goom-math"], function(Mathematics) {
 				node.isVisited = false;
 				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
 				node.searchParent = null;
+				node.gScore = 0;
 			}
 
 			for (i = 0, len = this.secondDegreeNodes.length; i < len; i++) {
@@ -300,6 +304,7 @@ define(["goom-math"], function(Mathematics) {
 				node.isVisited = false;
 				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
 				node.searchParent = null;
+				node.gScore = 0;
 			}
 
 			for (i = 0, len = this.thirdDegreeNodes.length; i < len; i++) {
@@ -307,6 +312,7 @@ define(["goom-math"], function(Mathematics) {
 				node.isVisited = false;
 				node.squaredDistanceToGoal = node.triangle.orthocenter.substract(goal.triangle.orthocenter, this.__helperVector).squaredMagnitude();
 				node.searchParent = null;
+				node.gScore = 0;
 			}
 		};
 
@@ -388,8 +394,12 @@ define(["goom-math"], function(Mathematics) {
 			return triangle;
 		};
 
-		var orderNodes = function(a, b) {
+		var orderFirstFirstNodes = function(a, b) {
 			return a.squaredDistanceToGoal - b.squaredDistanceToGoal;
+		};
+
+		var orderAStarNodes = function(a, b) {
+			return (a.gScore + a.squaredDistanceToGoal) - (b.gScore + b.squaredDistanceToGoal);
 		};
 
 		/**
@@ -399,7 +409,7 @@ define(["goom-math"], function(Mathematics) {
 			@returns {Array} Array holding the path.
 		*/
 		NavigationMesh.prototype.findPath = function (origin, goal, path) {
-			var open_node, i, len;
+			var open_node, linked_node, i, len;
 			var origin_triangle = this.__selectCorrespondingTriangle(origin), origin_node = origin_triangle.abstractNode;
 			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
 			this.abstractGraph.initialize(goal_node);
@@ -412,7 +422,7 @@ define(["goom-math"], function(Mathematics) {
 				this.__openNodes.unshift(origin_node);
 
 				while (this.__openNodes.length > 0) {
-					this.__openNodes.sort(orderNodes);
+					this.__openNodes.sort(orderFirstFirstNodes);
 					open_node = this.__openNodes.shift(), open_node.isVisited = true;
 					//If the actual node is the goal node, stop search.
 					if (open_node === goal_node) { break; }
@@ -438,9 +448,46 @@ define(["goom-math"], function(Mathematics) {
 			if ((origin_node.degree == goal_node.degree == 2) && ((origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[0] &&
 					(origin_node.edgeEndPoints[1] === goal_node.edgeEndPoints[0])) || (origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1] &&
 					origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1]))) {
+				//The nodes are in the same ring. A* search should do it.
+				var tentative_g_score = 0;
+				this.__openNodes.length = 0, path.length = 0;
+				this.__openNodes.unshift(origin_node);
 
+				while (this.__openNodes.length > 0) {
+					this.__openNodes.sort(orderAStarNodes);
+					open_node = this.__openNodes.shift(), open_node.isVisited = true;
+					//If the actual node is the goal node, stop search.
+					if (open_node === goal_node) { break; }
+
+					//Push into the queue the nodes connected to this one.
+					for (i = 0, len = open_node.linkedNodes.length; i < len; i++) {
+						linked_node = open_node.linkedNodes[i];
+						if (linked_node.isVisited) continue;
+						tentative_g_score = open_node.gScore + open_node.triangle.orthocenter.substract(
+							linked_node.triangle.orthocenter, this.__helperVector).squaredMagnitude();
+						if (this.__openNodes.indexOf(linked_node) < 0) {
+							linked_node.searchParent = open_node;
+							linked_node.gScore = tentative_g_score;
+							this.__openNodes.unshift(linked_node);
+						} else if (tentative_g_score < linked_node.gScore) {
+							linked_node.searchParent = open_node;
+							linked_node.gScore = tentative_g_score;
+						}
+					}
+				}
+
+				if (open_node !== goal_node) path.length = 0;
+				//Create the search path to be returned by backtracking.
+				while (open_node !== null && open_node !== undefined) {
+					path.unshift(open_node);
+					open_node = open_node.searchParent;
+				}
+
+				return path;
 			}
+
 			//TODO
+			return path;
 		};
 		
 		return NavigationMesh;
