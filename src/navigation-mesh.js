@@ -341,6 +341,7 @@ define(["goom-math"], function(Mathematics) {
 			this.__helperVector3 = new Mathematics.Vector3D();
 			this.__openNodes = [];
 			this.__possiblePath = [];
+			this.__trianglePath = [];
 		}
 
 		/**
@@ -478,13 +479,13 @@ define(["goom-math"], function(Mathematics) {
 		};
 
 		/**
-			Returns the path from the origin to the goal. It will not always go to the goal, with more complicated paths it will
+			Returns the triangle path from the origin to the goal. It will not always go to the goal, with more complicated paths it will
 			only return the path to important nodes connected to the goal.
 			@param {Mathematics.Vector3D} origin The origin point.
 			@param {Mathematics.Vector3D} goal The goal point.
 			@returns {Array} Array holding the path.
 		*/
-		NavigationMesh.prototype.findPath = function (origin, goal, path) {
+		NavigationMesh.prototype.findTrianglePath = function (origin, goal, path) {
 			var open_node, linked_node, i, len;
 			var origin_triangle = this.__selectCorrespondingTriangle(origin), origin_node = origin_triangle.abstractNode;
 			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
@@ -591,6 +592,26 @@ define(["goom-math"], function(Mathematics) {
 				//Return the path to the root node instead of the complete path.
 				this.performSecondDegreeSearch(origin_node, goal_node.root, path);
 				return path;
+			}
+
+			return path;
+		};
+
+		/**
+			Returns the path from the origin to the goal. It will not always go to the goal, with more complicated paths it will
+			only return the path to important nodes connected to the goal.
+			@param {Mathematics.Vector3D} origin The origin point.
+			@param {Mathematics.Vector3D} goal The goal point.
+			@returns {Array} Array holding the path.
+		*/
+		NavigationMesh.prototype.findPath = function (origin, goal, path) {
+			//First we find the triangle path to the goal.
+			path.length = 0;
+			this.findTrianglePath(origin, goal, this.__trianglePath);
+			//And then find the actual path to the goal.
+			//TODO this goes to the orthocenter of each triangle every time, it should be changed to a funneling algorithm or something like it.
+			for (var i = 0, len = this.__trianglePath.length; i < len; i++) {
+				path.push(this.__trianglePath[i].triangle.orthocenter);
 			}
 
 			return path;
