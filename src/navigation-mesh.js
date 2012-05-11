@@ -340,6 +340,7 @@ define(["goom-math"], function(Mathematics) {
 			this.__helperVector2 = new Mathematics.Vector3D();
 			this.__helperVector3 = new Mathematics.Vector3D();
 			this.__openNodes = [];
+			this.__possiblePath = [];
 		}
 
 		/**
@@ -477,7 +478,8 @@ define(["goom-math"], function(Mathematics) {
 		};
 
 		/**
-			Returns the path from the origin to the goal.
+			Returns the path from the origin to the goal. It will not always go to the goal, with more complicated paths it will
+			only return the path to important nodes connected to the goal.
 			@param {Mathematics.Vector3D} origin The origin point.
 			@param {Mathematics.Vector3D} goal The goal point.
 			@returns {Array} Array holding the path.
@@ -486,14 +488,22 @@ define(["goom-math"], function(Mathematics) {
 			var open_node, linked_node, i, len;
 			var origin_triangle = this.__selectCorrespondingTriangle(origin), origin_node = origin_triangle.abstractNode;
 			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
-			this.abstractGraph.initialize(goal_node);
 			this.__openNodes.length = 0, path.length = 0;
+			this.abstractGraph.initialize(goal_node);
+			//If either the origin or goal node aren't "over" the navmesh, return an empty search path.
+			if (origin_node === null || goal_node === null) return path;
 
 			//If both nodes are degree-1 in the same tree or one is a degree-1 node and the other one the parent of the tree...
 			if (((origin_node.degree == 1 && goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root))) ||
 					((origin_node.degree == 1 && goal_node.degree == 2) && (origin_node.root == goal_node)) ||
 					((goal_node.degree == 1 && origin_node.degree == 2) && (goal_node.root == origin_node))) {
 				this.performFirstDegreeSearch(origin_node, goal_node, path);
+				return path;
+			}
+
+			//Go to the root of the node to begin with.
+			if ((goal_node.degree == 2 || goal_node.degree == 3) && (origin_node.degree == 1 && origin_node.root !== null)) {
+				this.performFirstDegreeSearch(origin_node, origin_node.root, path);
 				return path;
 			}
 
@@ -507,29 +517,82 @@ define(["goom-math"], function(Mathematics) {
 				return path;
 			}
 
+			var they_are_connected;
 			//If both are degree-3 nodes and they are connected by the same degree-2 nodes,perform second degree search.
 			if (origin_node.degree == 3 && goal_node.degree == 3) {
-				var they_are_connected = false;
+				they_are_connected = false;
 				for (i = 0, len = origin_node.linkedNodes.length; i < len; i++) {
 					for (j = 0, len2 = goal_node.linkedNodes.length; j < len2; j++) {
 						if ((origin_node.linkedNodes[i].edgeEndPoints[0] == goal_node.linkedNodes[j].edgeEndPoints[0] &&
 							origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[1]) ||
 							(origin_node.linkedNodes[i].edgeEndPoints[0] == goal_node.linkedNodes[j].edgeEndPoints[1] &&
-							origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[0]))
+							origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[0])) {
 							they_are_connected = true;
 							break;
+						}
 					}
 				}
 
-				this.performSecondDegreeSearch(origin_node, goal_node, path);
+				if (they_are_connected) {
+					this.performSecondDegreeSearch(origin_node, goal_node, path);
+					return path;
+				}
 			}
 
-			//If both nodes are degree-3 nodes, search with A*
-			//if (origin_node.degree == 3 && goal_node.degree == 3) {
-			//	this.performThirdDegreeSearch(origin_node, goal_node, path);
-			//}
+			if (origin_node.degree == 2 && goal_node.degree == 3) {
+				they_are_connected = false;
+				for (j = 0, len2 = goal_node.linkedNodes.length; j < len2; j++) {
+					if (origin_node.edgeEndPoints[0] == goal_node.linkedNodes[j].edgeEndPoints[0] ||
+						origin_node.edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[1] ||
+						origin_node.edgeEndPoints[0] == goal_node.linkedNodes[j].edgeEndPoints[1] ||
+						origin_node.edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[0]) {
+						they_are_connected = true;
+						break;
+					}
+				}
 
-			//TODO
+				if (they_are_connected) {
+					this.performSecondDegreeSearch(origin_node, goal_node, path);
+					return path;
+				}
+			} else if (origin_node.degree == 3 && goal_node.degree == 2) {
+				they_are_connected = false;
+				for (i = 0, len = origin_node.linkedNodes.length; i < len; i++) {
+					if (origin_node.linkedNodes[i].edgeEndPoints[0] == goal_node.edgeEndPoints[0] ||
+						origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.edgeEndPoints[1] ||
+						origin_node.linkedNodes[i].edgeEndPoints[0] == goal_node.edgeEndPoints[1] ||
+						origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.edgeEndPoints[0]) {
+						they_are_connected = true;
+						break;
+					}
+				}
+
+				if (they_are_connected) {
+					this.performSecondDegreeSearch(origin_node, goal_node, path);
+					return path;
+				}
+			}
+
+			if (goal_node.degree == 2 && origin_node.degree !== 1) {
+				//Choose the shortest path to the node connected to the end point.
+				this.performSecondDegreeSearch(origin_node, goal_node.edgeEndPoints[0], path);
+				this.performSecondDegreeSearch(origin_node, goal_node.edgeEndPoints[1], this.__possiblePath);
+				if (path.length > this.__possiblePath) {
+					path.length = 0;
+					for (i = 0, len = this.__possiblePath.length; i < len; i++) {
+						path.push(this.__possiblePath[i]);
+					}
+				}
+
+				return path;
+			}
+
+			if (goal_node.degree == 1) {
+				//Return the path to the root node instead of the complete path.
+				this.performSecondDegreeSearch(origin_node, goal_node.root, path);
+				return path;
+			}
+
 			return path;
 		};
 		
