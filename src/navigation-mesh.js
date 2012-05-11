@@ -403,6 +403,80 @@ define(["goom-math"], function(Mathematics) {
 		};
 
 		/**
+			Returns the path from the origin to the goal performing a first degree search.
+			@param {Mathematics.Vector3D} origin_node The origin point.
+			@param {Mathematics.Vector3D} goal_node The goal point.
+			@returns {Array} Array holding the path.
+		*/
+		NavigationMesh.prototype.performFirstDegreeSearch = function (origin_node, goal_node, path) {
+			//Since the two nodes are in the same tree, we can do a simple search like best first.
+			this.__openNodes.unshift(origin_node);
+
+			while (this.__openNodes.length > 0) {
+				this.__openNodes.sort(orderFirstFirstNodes);
+				open_node = this.__openNodes.shift(), open_node.isVisited = true;
+				//If the actual node is the goal node, stop search.
+				if (open_node === goal_node) { break; }
+				//Push into the queue the nodes connected to this one.
+				for (i = 0, len = open_node.linkedNodes.length; i < len; i++) {
+					if (!open_node.linkedNodes[i].isVisited) {
+						open_node.linkedNodes[i].searchParent = open_node;
+						this.__openNodes.unshift(open_node.linkedNodes[i]);
+					}
+				}
+			}
+
+			if (open_node !== goal_node) path.length = 0;
+			//Create the search path to be returned by backtracking.
+			while (open_node !== null && open_node !== undefined) {
+				path.unshift(open_node);
+				open_node = open_node.searchParent;
+			}
+		};
+
+		/**
+			Returns the path from the origin to the goal performing a second degree search.
+			@param {Mathematics.Vector3D} origin_node The origin point.
+			@param {Mathematics.Vector3D} goal_node The goal point.
+			@returns {Array} Array holding the path.
+		*/
+		NavigationMesh.prototype.performSecondDegreeSearch = function (origin_node, goal_node, path) {
+			//The nodes are in the same ring. A* search should do it.
+			var tentative_g_score = 0;
+			this.__openNodes.unshift(origin_node);
+
+			while (this.__openNodes.length > 0) {
+				this.__openNodes.sort(orderAStarNodes);
+				open_node = this.__openNodes.shift(), open_node.isVisited = true;
+				//If the actual node is the goal node, stop search.
+				if (open_node === goal_node) { break; }
+
+				//Push into the queue the nodes connected to this one.
+				for (i = 0, len = open_node.linkedNodes.length; i < len; i++) {
+					linked_node = open_node.linkedNodes[i];
+					if (linked_node.isVisited || linked_node.degree == 1) continue;
+					tentative_g_score = open_node.gScore + open_node.triangle.orthocenter.substract(
+						linked_node.triangle.orthocenter, this.__helperVector).squaredMagnitude();
+					if (this.__openNodes.indexOf(linked_node) < 0) {
+						linked_node.searchParent = open_node;
+						linked_node.gScore = tentative_g_score;
+						this.__openNodes.unshift(linked_node);
+					} else if (tentative_g_score < linked_node.gScore) {
+						linked_node.searchParent = open_node;
+						linked_node.gScore = tentative_g_score;
+					}
+				}
+			}
+
+			if (open_node !== goal_node) path.length = 0;
+			//Create the search path to be returned by backtracking.
+			while (open_node !== null && open_node !== undefined) {
+				path.unshift(open_node);
+				open_node = open_node.searchParent;
+			}
+		};
+
+		/**
 			Returns the path from the origin to the goal.
 			@param {Mathematics.Vector3D} origin The origin point.
 			@param {Mathematics.Vector3D} goal The goal point.
@@ -413,82 +487,47 @@ define(["goom-math"], function(Mathematics) {
 			var origin_triangle = this.__selectCorrespondingTriangle(origin), origin_node = origin_triangle.abstractNode;
 			var goal_triangle = this.__selectCorrespondingTriangle(goal), goal_node = goal_triangle.abstractNode;
 			this.abstractGraph.initialize(goal_node);
+			this.__openNodes.length = 0, path.length = 0;
 
 			//If both nodes are degree-1 in the same tree or one is a degree-1 node and the other one the parent of the tree...
-			if ((origin_node.degree == goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root)) ||
+			if (((origin_node.degree == 1 && goal_node.degree == 1) && ((origin_node.root === null && goal_node.root === null) || (origin_node.root === goal_node.root))) ||
 					((origin_node.degree == 1 && goal_node.degree == 2) && (origin_node.root == goal_node)) ||
 					((goal_node.degree == 1 && origin_node.degree == 2) && (goal_node.root == origin_node))) {
-				//Since the two nodes are in the same tree, we can do a simple search like best first.
-				this.__openNodes.length = 0, path.length = 0;
-				this.__openNodes.unshift(origin_node);
-
-				while (this.__openNodes.length > 0) {
-					this.__openNodes.sort(orderFirstFirstNodes);
-					open_node = this.__openNodes.shift(), open_node.isVisited = true;
-					//If the actual node is the goal node, stop search.
-					if (open_node === goal_node) { break; }
-					//Push into the queue the nodes connected to this one.
-					for (i = 0, len = open_node.linkedNodes.length; i < len; i++) {
-						if (!open_node.linkedNodes[i].isVisited) {
-							open_node.linkedNodes[i].searchParent = open_node;
-							this.__openNodes.unshift(open_node.linkedNodes[i]);
-						}
-					}
-				}
-
-				if (open_node !== goal_node) path.length = 0;
-				//Create the search path to be returned by backtracking.
-				while (open_node !== null && open_node !== undefined) {
-					path.unshift(open_node);
-					open_node = open_node.searchParent;
-				}
-
+				this.performFirstDegreeSearch(origin_node, goal_node, path);
 				return path;
 			}
 
 			//If both are degree-2 nodes in the same edge or one of them is one of the degree-3 nodes in the edge of the other node...
-			if (((origin_node.degree == goal_node.degree == 2) && ((origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[0] &&
+			if (((origin_node.degree == 2 && goal_node.degree == 2) && ((origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[0] &&
 					(origin_node.edgeEndPoints[1] === goal_node.edgeEndPoints[0])) || (origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1] &&
 					origin_node.edgeEndPoints[0] === goal_node.edgeEndPoints[1]))) || (((origin_node.degree == 2 && goal_node.degree == 3 &&
 					(origin_node.edgeEndPoints[0] == goal_node || origin_node.edgeEndPoints[1] == goal_node)) ||
 					(origin_node.degree == 3 && goal_node.degree == 2 && (goal_node.edgeEndPoints[0] == origin_node || goal_node.edgeEndPoints[1] == origin_node))))) {
-				//The nodes are in the same ring. A* search should do it.
-				var tentative_g_score = 0;
-				this.__openNodes.length = 0, path.length = 0;
-				this.__openNodes.unshift(origin_node);
+				this.performSecondDegreeSearch(origin_node, goal_node, path);
+				return path;
+			}
 
-				while (this.__openNodes.length > 0) {
-					this.__openNodes.sort(orderAStarNodes);
-					open_node = this.__openNodes.shift(), open_node.isVisited = true;
-					//If the actual node is the goal node, stop search.
-					if (open_node === goal_node) { break; }
-
-					//Push into the queue the nodes connected to this one.
-					for (i = 0, len = open_node.linkedNodes.length; i < len; i++) {
-						linked_node = open_node.linkedNodes[i];
-						if (linked_node.isVisited) continue;
-						tentative_g_score = open_node.gScore + open_node.triangle.orthocenter.substract(
-							linked_node.triangle.orthocenter, this.__helperVector).squaredMagnitude();
-						if (this.__openNodes.indexOf(linked_node) < 0) {
-							linked_node.searchParent = open_node;
-							linked_node.gScore = tentative_g_score;
-							this.__openNodes.unshift(linked_node);
-						} else if (tentative_g_score < linked_node.gScore) {
-							linked_node.searchParent = open_node;
-							linked_node.gScore = tentative_g_score;
-						}
+			//If both are degree-3 nodes and they are connected by the same degree-2 nodes,perform second degree search.
+			if (origin_node.degree == 3 && goal_node.degree == 3) {
+				var they_are_connected = false;
+				for (i = 0, len = origin_node.linkedNodes.length; i < len; i++) {
+					for (j = 0, len2 = goal_node.linkedNodes.length; j < len2; j++) {
+						if ((origin_node.linkedNodes[i].edgeEndPoints[0] == goal_node.linkedNodes[j].edgeEndPoints[0] &&
+							origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[1]) ||
+							(origin_node.linkedNodes[i].edgeEndPoints[0] == goal_node.linkedNodes[j].edgeEndPoints[1] &&
+							origin_node.linkedNodes[i].edgeEndPoints[1] == goal_node.linkedNodes[j].edgeEndPoints[0]))
+							they_are_connected = true;
+							break;
 					}
 				}
 
-				if (open_node !== goal_node) path.length = 0;
-				//Create the search path to be returned by backtracking.
-				while (open_node !== null && open_node !== undefined) {
-					path.unshift(open_node);
-					open_node = open_node.searchParent;
-				}
-
-				return path;
+				this.performSecondDegreeSearch(origin_node, goal_node, path);
 			}
+
+			//If both nodes are degree-3 nodes, search with A*
+			//if (origin_node.degree == 3 && goal_node.degree == 3) {
+			//	this.performThirdDegreeSearch(origin_node, goal_node, path);
+			//}
 
 			//TODO
 			return path;
