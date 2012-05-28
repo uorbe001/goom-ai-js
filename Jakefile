@@ -1,7 +1,6 @@
 var sys = require('util');
 var fs = require('fs');
 var exec = require('child_process').exec;
-var requirejs = require('requirejs');
 
 var config = {
 	baseUrl: "src/",
@@ -25,9 +24,8 @@ task("test", function(params){
 desc("Builds the project into a minified file.");
 task("build", function(params){
 	console.log("Building the project into a minified file...")
-	requirejs.optimize(config, function (buildResponse) {
-		fs.unlink('dist/build.txt');
-		fs.rename('dist/goom-ai.js', 'dist/goom-ai.min.js');
-		console.log("The file is ready at dist/goom-ai.min.js");
+	exec("browserify src/goom-ai.js  -o dist/goom-ai.js", function (error, stdout, stderr) {
+		sys.print(stdout);
+		console.log("The file is ready at dist/goom-ai.js");
 	});
 });

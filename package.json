@@ -1,7 +1,7 @@
 {
 	"name": "goom-ai",
 	"version": "0.0.1",
-	"dependencies": {"requirejs": ">=1.0.7", "amdefine": ">=0.0.2"},
-	"devDependencies": {"jasmine-node": ">=1.0.22", "jake": ">=0.2.28", "sentry": "0.1.2"},
+	"dependencies": {"goom-math": ">=0.0.1"},
+	"devDependencies": {"jasmine-node": ">=1.0.22", "jake": ">=0.2.28", "sentry": "0.1.2", "browserify": ">=1.10.15"},
 	"main": "src/goom-ai.js"
 }
