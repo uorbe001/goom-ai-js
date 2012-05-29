@@ -77,8 +77,10 @@ BehaviourTree.prototype.__parseConfig = function (config) {
 
 /**
 	Traverses the behaviour tree.
+	@param {Number} time The time elapsed from previous simulation.
+	@param agent_data Object containing the data relevant for this agent to think.
 */
-BehaviourTree.prototype.traverse = function() {
+BehaviourTree.prototype.traverse = function(time, agent_data) {
 	var sequence = this.nodeSequence, node, result, parent, sequence_length = sequence.length;
 
 	for(var i = 0, len = sequence.length; i < len; i++) {
@@ -95,14 +97,14 @@ BehaviourTree.prototype.traverse = function() {
 		}
 
 		if (node instanceof Nodes.Condition) {
-			result = node.execute();
+			result = node.execute(time, agent_data);
 			//If a condition node fails, the next node must be skipped.
 			if (result === Responses.FAILURE) i++;
 			continue;
 		}
 
 		if (node instanceof Nodes.Action) {
-			result = node.execute();
+			result = node.execute(time, agent_data);
 
 			if (result === Responses.RUNNING && (parent instanceof Nodes.Sequence || parent instanceof Nodes.Loop)) {
 				parent.runningNodeIndex = i;
