@@ -24,7 +24,7 @@ function Agent(config, navigation_mesh) {
 	@param agent_data Object containing the data relevant for this agent to think.
 */
 Agent.prototype.think = function(time, agent_data) {
-	this.behaviourTree.traverse(time, agent_data);
+	this.behaviourTree.traverse(time, agent_data, this.navigationMesh);
 };
 
 module.exports = Agent;

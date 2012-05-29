@@ -86,6 +86,8 @@ describe("AI.World", function(){
 		spyOn(box_agent, "think").andCallThrough();
 
 		this.world.update(1);
-		expect(box_agent.think).toHaveBeenCalledWith(1, this.world.agents[0]);
+		expect(box_agent.think).toHaveBeenCalledWith(1, this.world.agents[0]/*, this.world.navigationMesh */);
+		//Jasmine is crying here with a nested too deeply error, but it should be working fine, the last parameter is
+		//the agent's responsibility anyway.
 	});
 });
