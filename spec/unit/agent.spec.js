@@ -55,6 +55,6 @@ describe("AI.Agent", function(){
 		};
 
 		this.agent.think(1, agent_data);
-		expect(this.a1).toHaveBeenCalledWith(1, agent_data, this.nm);
+		expect(this.a1).toHaveBeenCalledWith(1, this.agent, agent_data);
 	});
 });
