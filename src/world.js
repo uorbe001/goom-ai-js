@@ -34,4 +34,17 @@ World.prototype.update = function(time) {
 	}
 };
 
+/**
+	Returns the agent instance with the given id.
+	@param {String} id The id of the agent instance to look for.
+	@returns The agent instance data with the given id, null if not found.
+*/
+World.prototype.findInstance = function(id) {
+	for (var i = this.agents.length - 1; i >= 0; i--) {
+		if (this.agents[i].id === id) return this.agents[i];
+	}
+
+	return null;
+};
+
 module.exports = World;

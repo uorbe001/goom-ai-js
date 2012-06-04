@@ -51,6 +51,7 @@ describe("AI.World", function(){
 
 				"agents": [
 					{
+						"id": "a0",
 						"model": "box_agent",
 						"static": false,
 						"position": {"x": 0, "y": 0, "z": 0},
@@ -87,5 +88,12 @@ describe("AI.World", function(){
 
 		this.world.update(1);
 		expect(box_agent.think).toHaveBeenCalledWith(1, this.world.agents[0]);
+	});
+
+	it("should return the agent instance by id and null when it is not found", function() {
+		var agent_instance = this.world.findInstance("a0");
+		expect(agent_instance).toBe(this.world.agents[0]);
+		agent_instance = this.world.findInstance("a1");
+		expect(agent_instance).toBeNull();
 	});
 });
