@@ -1,4 +1,4 @@
-var NavigationMesh = require("../../src/navigation-mesh"), Mathematics = require("goom-math");
+var NavigationMesh = require("../../src/navigation-mesh"), Mathematics = require("goom-math-js");
 
 describe("AI.NavigationMesh", function(){
 	beforeEach(function() {

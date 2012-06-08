@@ -1,4 +1,4 @@
-var Mathematics = require("goom-math");
+var Mathematics = require("goom-math-js");
 var edge_list = [];
 
 function Triangle(vertex_one, vertex_two, vertex_three) {
