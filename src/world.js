@@ -1,4 +1,4 @@
-var Agent = require("./agent"), NavigationMesh = require("./navigation-mesh");
+var Agent = require("./agent"), AgentInstance = require("./agent_instance"), NavigationMesh = require("./navigation-mesh");
 
 /**
 	Creates a new AI World.
@@ -18,7 +18,7 @@ function World(config) {
 	}
 
 	for (i = 0, len = config.level.agents.length; i < len; i++) {
-		this.agents.push(JSON.parse(JSON.stringify(config.level.agents[i])));
+		this.agents.push(new AgentInstance(config.level.agents[i]));
 	}
 }
 
